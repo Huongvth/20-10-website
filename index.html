@@ -1131,10 +1131,9 @@ setInterval(() => {
   }
 }, 1800);
 
-
-
 /* =========================================
    5. MUSIC PLAYER - music.mp3
+   Tự phát nhạc khi người dùng tương tác
 ========================================= */
 
 (() => {
@@ -1143,11 +1142,14 @@ setInterval(() => {
   const audio = new Audio("./music.mp3");
   audio.loop = true;
   audio.volume = 0.5;
+  audio.preload = "auto";
 
   const button = document.createElement("button");
   button.id = "musicToggle2010";
   button.type = "button";
   button.textContent = "♪ Bật nhạc";
+  button.setAttribute("aria-label", "Bật hoặc tắt nhạc");
+  button.setAttribute("aria-pressed", "false");
 
   Object.assign(button.style, {
     position: "fixed",
@@ -1166,13 +1168,20 @@ setInterval(() => {
 
   document.body.appendChild(button);
 
+  let started = false;
+  let manuallyStopped = false;
+
   async function playMusic() {
     try {
       await audio.play();
+
+      started = true;
+      manuallyStopped = false;
+
       button.textContent = "♪ Tắt nhạc";
       button.setAttribute("aria-pressed", "true");
     } catch (error) {
-      console.log("Trình duyệt chặn tự phát hoặc không đọc được music.mp3:", error);
+      console.log("Không thể phát nhạc:", error);
       button.textContent = "♪ Bật nhạc";
       button.setAttribute("aria-pressed", "false");
     }
@@ -1180,28 +1189,56 @@ setInterval(() => {
 
   function stopMusic() {
     audio.pause();
+    manuallyStopped = true;
+
     button.textContent = "♪ Bật nhạc";
     button.setAttribute("aria-pressed", "false");
   }
 
+  // Nhấn nút để bật/tắt nhạc thủ công
   button.addEventListener("click", async () => {
-    if (!audio.paused) {
-      stopMusic();
-    } else {
+    if (audio.paused) {
       await playMusic();
+    } else {
+      stopMusic();
     }
   });
 
-  // Tự phát nhạc ngay khi mở trang
-window.addEventListener("load", () => {
-  playMusic();
-});
+  // Thử tự phát khi trang tải xong
+  window.addEventListener("load", () => {
+    playMusic();
+  });
 
+  // Tự phát khi người dùng tương tác lần đầu ở bất kỳ đâu
+  function firstInteraction() {
+    if (started || manuallyStopped) return;
 
+    playMusic();
+  }
 
+  const events = [
+    "pointerdown",
+    "keydown",
+    "touchstart",
+    "click"
+  ];
 
+  events.forEach((eventName) => {
+    document.addEventListener(eventName, firstInteraction, {
+      once: true,
+      passive: true
+    });
+  });
 
+  // Nếu phát nhạc bị chặn lúc đầu, vẫn cho phép thử lại
+  audio.addEventListener("error", () => {
+    console.error(
+      "Không tải được music.mp3. Hãy kiểm tra đường dẫn file."
+    );
+  });
 })();
+
+
 </script>
 </body>
 </html>
